@@ -9,8 +9,10 @@ from bs4 import BeautifulSoup
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.47'}
 url_base="http://blog.nanabunnonijyuuni.com/s/n227/diary/blog/list?page="
 url_base2="http://blog.nanabunnonijyuuni.com"
-base="!![](https://cdn.jsdelivr.net/gh/zzzhxxx/227WiKi-image@master/blog-image/"
-page=0
+base="!![](https://cdn.jsdelivr.net/gh/227WiKi/227WiKi-image@master/blog-image/"
+page=96
+count=2
+same_date=False
 iml="http://blog.nanabunnonijyuuni.com"
 toLink=[]
 a=[]
@@ -22,6 +24,7 @@ des=[]
 c=0
 contents=[]
 imagelink=[]
+cpn='' # allow the same date 
 def get_info():
     global title
     global authors
@@ -55,7 +58,6 @@ def get_info():
 def checkstatus():
     global page
     url=url_base+str(page)
-    print(url)
     data=requests.get(url,headers=headers)
     bs=BeautifulSoup(data.text,"html.parser")
     if_no_content=bs.find_all('p')
@@ -78,7 +80,10 @@ def getcontents(links):
     dd=dd.replace(".","-")
     blog_contents=bs.find('div',class_="blog_detail__main")
     a=blog_contents.find_all('img')
-    dir_name=changefilename(nn)+"-"+dd
+    if(same_date):
+        dir_name=changefilename(nn)+"-"+ dd + "-" + str(count-1)
+    if(not(same_date)):
+        dir_name=changefilename(nn)+"-"+ dd
     global iml
     con=blog_contents.text
     final_return=''
@@ -109,20 +114,125 @@ def changefilename(au):
         return "kanae"
     if au == '宮瀬玲奈':
         return "reina"
+    if au == '相川奈央':
+        return "nao"
+    if au == '麻丘真央':
+        return "mao"
+    if au == '椎名桜月':
+        return "satsuki"
+    if au == '雨夜音':
+        return "oto"
+    if au == '清井美那':
+        return "mina"
+    if au == '四条月':
+        return "luna"
+    if au == '月城咲舞':
+        return "emma"
+    if au == '望月りの':
+        return "rino"
 def get_pages():
     global page
     while(checkstatus()):
         page+=1
+    page-=1
     return page
 if __name__ == "__main__":
     # os.mkdir("images")
-    for z in range(96):
-        get_info()
-        for i in range(len(title)):
-            author_filename.append(changefilename(authors[i]))
-            with open(author_filename[i]+"-"+day[i]+".md","w",encoding='utf-8') as f:
-                f.write("---\ntitle: "+title[i]+"\n"+"author: "+authors[i]+"\n"+"description: "+des[i]+"\n"+"avatar: https://cdn.jsdelivr.net/gh/zzzhxxx/227WiKi@master/docs/assets/photo/avatar/"+author_filename[i]+".jpg"+"\n"+"date: "+'"'+day[i]+'"'+"\n"+"tags:\n  - "+authors[i]+"\n---\n\n"+getcontents(toLink[i]))
-        author_filename=[]
-        page+=1
+    get_pages()
+    print(page)
+    with open("history.txt","r",encoding='utf-8') as f:
+        last_get_filename=f.read()
+    get_info()
+    for i in range(len(title)):
+            # if z == 0:
+        author_filename.append(changefilename(authors[i]))
+        if(last_get_filename == author_filename[i]+"-"+day[i]+".md"):
+            print("Don't need to update,exit the program!")
+            sys.exit(0)
 
-    print("finish!")
+    if(last_get_filename == ''):
+        print("No history record,do you want to patch all the blogs(Y/N):")
+        if_patch=input()
+        if(if_patch == 'Y' or if_patch =='y'):
+            print("Start patch!")
+            for z in range(page,-1,-1):
+                print('Now page:',page)
+                get_info()
+                with open("current_page.txt","w",encoding='utf-8') as cp:
+                    cp.write(str(page))
+                for i in range(len(title)):
+                    cpn=last_get_filename
+                    author_filename.append(changefilename(authors[i]))
+                    last_get_filename= author_filename[i]+"-"+day[i]
+                    real_name=''
+                    if(not(cpn == '') and cpn == last_get_filename):
+                            real_name=last_get_filename + '-' + str(count) + ".md"
+                            same_date=True
+                            count+=1
+                    if(cpn == '' or not(cpn == last_get_filename)):
+                            real_name=last_get_filename + ".md"
+                            count=2
+                            same_date=False
+                    with open(real_name,"w",encoding='utf-8') as f:
+                        f.write("---\ntitle: "+title[i]+"\n"+"template: comment.html\n"+"author: "+authors[i]+"\n"+"description: "+des[i]+"\n"+"avatar: https://cdn.jsdelivr.net/gh/zzzhxxx/227WiKi@master/docs/assets/photo/avatar/"+author_filename[i]+".jpg"+"\n"+"date: "+'"'+day[i]+'"'+"\n"+"tags:\n  - "+authors[i]+"\n---\n\n"+getcontents(toLink[i]))
+                    with open("history.txt","w",encoding='utf-8') as save:
+                        save.write(last_get_filename)
+                author_filename=[]
+                page-=1
+        if(if_patch == 'N' or if_patch == 'n'):
+            print("Please tell me the page number you want to patch if you want to exit the program plase enter -1:")
+            page=input()
+            if(page=='-1'):
+                sys.exit(0)
+            print('Now page:'+page)
+            get_info()
+            for i in range(len(title)):
+                # if z == 0:
+                cpn=last_get_filename
+                author_filename.append(changefilename(authors[i]))
+                last_get_filename= author_filename[i]+"-"+day[i]
+                real_name=''
+                if(not(cpn == '') and cpn == last_get_filename):
+                        real_name=last_get_filename + '-' + str(count) + ".md"        
+                        count+=1               
+                if(cpn == '' or not(cpn == last_get_filename)):
+                        real_name=last_get_filename + ".md"
+                        count=2
+                with open(real_name,"w",encoding='utf-8') as f:
+                    f.write("---\ntitle: "+title[i]+"\n"+"template: comment.html"+"author: "+authors[i]+"\n"+"description: "+des[i]+"\n"+"avatar: https://cdn.jsdelivr.net/gh/zzzhxxx/227WiKi@master/docs/assets/photo/avatar/"+author_filename[i]+".jpg"+"\n"+"date: "+'"'+day[i]+'"'+"\n"+"tags:\n  - "+authors[i]+"\n---\n\n"+getcontents(toLink[i]))
+                with open("history.txt","w",encoding='utf-8') as save:
+                    save.write(last_get_filename)
+            print("finish")
+            sys.exit(0)
+    if(not(last_get_filename == '')):
+        print("Detecting the latest record…")
+        with open("current_page.txt",'r',encoding='utf-8') as cp:
+            page=cp.read()
+        for z in range(int(page),-1,-1):
+            print('Current page:',page)
+            get_info()
+            with open("current_page.txt","w",encoding='utf-8') as cp:
+                cp.write(str(page))
+            for i in range(len(title)):
+                # if z == 0:
+                cpn=last_get_filename
+                author_filename.append(changefilename(authors[i]))
+                last_get_filename= author_filename[i]+"-"+day[i]
+                real_name=''
+                if(not(cpn == '') and cpn == last_get_filename):
+                        real_name=last_get_filename + '-' + str(count) + ".md"
+                        count+=1
+                if(cpn == '' or not(cpn == last_get_filename)):
+                        real_name=last_get_filename + ".md"
+                        count=2
+                with open(real_name,"w",encoding='utf-8') as f:
+                    f.write("---\ntitle: "+title[i]+"\n"+"template: comment.html\n"+"author: "+authors[i]+"\n"+"description: "+des[i]+"\n"+"avatar: https://cdn.jsdelivr.net/gh/zzzhxxx/227WiKi@master/docs/assets/photo/avatar/"+author_filename[i]+".jpg"+"\n"+"date: "+'"'+day[i]+'"'+"\n"+"tags:\n  - "+authors[i]+"\n---\n\n"+getcontents(toLink[i]))
+                with open("history.txt","w",encoding='utf-8') as save:
+                    save.write(last_get_filename)
+            author_filename=[]
+            page-=1
+
+
+
+
+    print("finish!The latest blog name:",last_get_filename)
